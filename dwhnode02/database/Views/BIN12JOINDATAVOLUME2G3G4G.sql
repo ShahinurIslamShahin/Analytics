@@ -1,0 +1,31 @@
+--
+-- BIN12JOINDATAVOLUME2G3G4G  (View) 
+--
+CREATE OR REPLACE FORCE VIEW DWH_USER.BIN12JOINDATAVOLUME2G3G4G
+(X, VOLUME3G, VOLUME2G, Z, VOLUME4G)
+BEQUEATH DEFINER
+AS 
+SELECT "X",
+          "VOLUME3G",
+          "VOLUME2G",
+          "Z",
+          "VOLUME4G"
+     FROM (SELECT *
+             FROM (SELECT X, VOLUME3G, VOLUME2G FROM BIN12JOINDATAVOLUME2G3G
+                   UNION
+                   SELECT Y, VOLUME3G, VOLUME2G FROM BIN12JOINDATAVOLUME2G3G)
+            WHERE X IS NOT NULL)
+          FULL JOIN
+          (  SELECT G379_CALLINGCELLID Z, SUM (G384_TOTALFLUX) VOLUME4G
+               FROM L3_DATA
+              WHERE     G429_RATTYPE = 6
+                    AND G383_CHARGINGTIME_KEY =
+                           (SELECT A.DATE_KEY
+                              FROM DATE_DIM A
+                             WHERE A.DATE_VALUE =
+                                      TO_DATE (SYSDATE - 1, 'DD/MM/RRRR'))
+           --AND G401_MAINOFFERINGID IS NOT NULL
+           GROUP BY G379_CALLINGCELLID)
+             ON X = Z;
+
+

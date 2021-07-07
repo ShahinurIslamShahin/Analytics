@@ -1,0 +1,38 @@
+--
+-- BIN3JOINVOICEDATA  (View) 
+--
+CREATE OR REPLACE FORCE VIEW DWH_USER.BIN3JOINVOICEDATA
+(DATA_ETL_DATE_KEY, G401_MAINOFFERINGID, VOICE_ETL_DATE_KEY, V397_MAINOFFERINGID, VOICEDATACOUNT)
+BEQUEATH DEFINER
+AS 
+SELECT DATA_ETL_DATE_KEY,
+          G401_MAINOFFERINGID,
+          VOICE_ETL_DATE_KEY,
+          V397_MAINOFFERINGID,
+          COALESCE (A.count_COL1, 0) + COALESCE (B.count_COL2, 0)
+             VOICEDATACOUNT
+     FROM (  SELECT ETL_DATE_KEY DATA_ETL_DATE_KEY,
+                    G401_MAINOFFERINGID,
+                    COUNT (G372_CALLINGPARTYNUMBER) count_COL1
+               FROM L3_DATA
+              WHERE ETL_DATE_KEY =
+                       (SELECT DATE_KEY
+                          FROM DATE_DIM
+                         WHERE DATE_VALUE =
+                                  TRUNC (TO_DATE (SYSDATE - 1, 'DD/MM/RRRR')))
+           GROUP BY ETL_DATE_KEY, G401_MAINOFFERINGID) A
+          FULL JOIN
+          (  SELECT ETL_DATE_KEY VOICE_ETL_DATE_KEY,
+                    V397_MAINOFFERINGID,
+                    COUNT (V372_CALLINGPARTYNUMBER) count_COL2
+               FROM L3_VOICE
+              WHERE ETL_DATE_KEY =
+                       (SELECT DATE_KEY
+                          FROM DATE_DIM
+                         WHERE DATE_VALUE =
+                                  TRUNC (TO_DATE (SYSDATE - 1, 'DD/MM/RRRR')))
+           GROUP BY ETL_DATE_KEY, V397_MAINOFFERINGID) B
+             ON     A.G401_MAINOFFERINGID = B.V397_MAINOFFERINGID
+                AND A.DATA_ETL_DATE_KEY = B.VOICE_ETL_DATE_KEY;
+
+

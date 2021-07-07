@@ -1,0 +1,30 @@
+--
+-- BRAND_PORTFOLIO_JOINVOICESMS  (View) 
+--
+CREATE OR REPLACE FORCE VIEW DWH_USER.BRAND_PORTFOLIO_JOINVOICESMS
+(V397_MAINOFFERINGID, S395_MAINOFFERINGID, VOICE_SMS_REVENUE)
+BEQUEATH DEFINER
+AS 
+select V397_MAINOFFERINGID,S395_MAINOFFERINGID,  COALESCE (VOICE_REVENUE, 0) + COALESCE (SMS_REVENUE, 0)  VOICE_SMS_REVENUE from 
+   
+   (SELECT V397_MAINOFFERINGID, SUM (V41_DEBIT_AMOUNT) VOICE_REVENUE
+                FROM L3_VOICE
+               WHERE ETL_DATE_KEY =
+                        (SELECT A.DATE_KEY
+                           FROM DATE_DIM A
+                          WHERE A.DATE_VALUE =
+                                   TO_DATE (SYSDATE - 2, 'DD/MM/RRRR')) and V403_ROAMSTATE !=3
+            GROUP BY V397_MAINOFFERINGID)
+            
+            full join
+            
+    (  SELECT S395_MAINOFFERINGID, SUM (S41_DEBIT_AMOUNT) SMS_REVENUE
+                FROM L3_SMS
+               WHERE ETL_DATE_KEY =
+                        (SELECT A.DATE_KEY
+                           FROM DATE_DIM A
+                          WHERE A.DATE_VALUE =
+                                   TO_DATE (SYSDATE - 2, 'DD/MM/RRRR'))
+            GROUP BY S395_MAINOFFERINGID) on V397_MAINOFFERINGID=S395_MAINOFFERINGID;
+
+

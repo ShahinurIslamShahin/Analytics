@@ -1,0 +1,37 @@
+--
+-- BRAND_PORTFOLIO_JOINDATARECURRING  (View) 
+--
+CREATE OR REPLACE FORCE VIEW DWH_USER.BRAND_PORTFOLIO_JOINDATARECURRING
+(G401_MAINOFFERINGID, R373_MAINOFFERINGID, DATA_RECURRING_REVENUE)
+BEQUEATH DEFINER
+AS 
+select G401_MAINOFFERINGID,R373_MAINOFFERINGID, COALESCE (DATA_REVENUE, 0) + COALESCE (RECURRING_REVENUE, 0) DATA_RECURRING_REVENUE
+    from
+    (SELECT G401_MAINOFFERINGID, SUM (G41_DEBIT_AMOUNT) DATA_REVENUE
+                 FROM L3_DATA
+                WHERE ETL_DATE_KEY =
+                         (SELECT A.DATE_KEY
+                            FROM DATE_DIM A
+                           WHERE A.DATE_VALUE =
+                                    TO_DATE (SYSDATE - 2, 'DD/MM/RRRR'))
+             GROUP BY G401_MAINOFFERINGID
+    
+    )
+    
+    full join
+    
+    (
+     SELECT R373_MAINOFFERINGID, SUM (R41_DEBIT_AMOUNT) RECURRING_REVENUE
+                FROM L3_RECURRING
+               WHERE ETL_DATE_KEY =
+                        (SELECT A.DATE_KEY
+                           FROM DATE_DIM A
+                          WHERE A.DATE_VALUE =
+                                   TO_DATE (SYSDATE - 2, 'DD/MM/RRRR'))
+                                  
+            GROUP BY R373_MAINOFFERINGID
+    
+    
+    ) on R373_MAINOFFERINGID=G401_MAINOFFERINGID;
+
+

@@ -1,0 +1,4 @@
+/data04
+/data04/dwhnode05
+/data04/dwhnode05/oradata
+/data04/dwhnode05/oradata/DWHDB05
