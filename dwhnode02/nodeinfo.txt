@@ -2,5 +2,5 @@ hostname:	dwhnode02
 ip	:	192.168.61.203
 user	:	root,dwhadmin
 purpose	:	Layer3,Subcribtion_dim,last_activity_fct,Lifecycle_fct
-DB user	:	dwh_user
+DB user	:	dwh_user.
 
