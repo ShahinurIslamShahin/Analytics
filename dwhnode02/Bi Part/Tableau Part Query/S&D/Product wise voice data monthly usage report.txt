@@ -1,0 +1,28 @@
+select a.product_name, coalesce(voice_users,0) voice_users,coalesce(b.voice_charge,0) voice_charges,coalesce(c.data_users,0) data_users,
+coalesce(c.data_mb,0) data_mb,coalesce(c.data_charge,0) data_charges,coalesce(b.sms_charge,0) sms_charges
+
+
+
+ from product_dim a 
+left outer join 
+ 
+(select /*+PARALLEL(lf,15)*/ lf.lu_moc_product_key product_id,count( distinct lf.msisdn) voice_users,round(sum(lf.lu_moc_air_charge),0) voice_charge, round(sum(lf.lu_mosms_air_charge),0) sms_charge
+ from last_activity_fct_ld lf
+ where lf.lu_moc_date_key in 
+( select distinct  dd.date_key from date_dim dd where to_char(dd.date_value,'yyyymmdd') between to_char(sysdate-30,'yyyymmdd') and to_char(sysdate-1,'yyyymmdd') ) 
+ group by lf.lu_moc_product_key ) b 
+ 
+ on a.product_id =b.product_id
+ 
+left outer join 
+    
+
+
+
+(select /*+PARALLEL(ld,15)*/ ld.g401_mainofferingid product_id,count( distinct ld.g372_callingpartynumber) data_users,round(sum(ld.g384_totalflux)/1024/1024,0) data_mb, round(sum(ld.g41_debit_amount),0) data_charge
+ from l3_data ld
+ where ld.g383_chargingtime_key in 
+( select distinct  dd.date_key from date_dim dd where to_char(dd.date_value,'yyyymmdd') between to_char(sysdate-30,'yyyymmdd') and to_char(sysdate-1,'yyyymmdd') ) 
+ group by ld.g401_mainofferingid ) c 
+ 
+ on a.product_id =c.product_id

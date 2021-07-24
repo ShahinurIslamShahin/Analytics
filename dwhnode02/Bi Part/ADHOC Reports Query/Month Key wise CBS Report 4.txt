@@ -1,0 +1,30 @@
+SELECT month_key,sum(CHARGED_MINUTES) CHARGED_MINUTES,sum(FREE_MINUTES) FREE_MINUTES,sum(PAID_MINUTES) PAID_MINUTES,sum(DATA_USAGE_GB) DATA_USAGE_GB FROM DATE_DIM S,
+(SELECT A.date_key,CHARGED_MINUTES,FREE_MINUTES,PAID_MINUTES,DATA_USAGE_GB 
+FROM
+(SELECT date_key FROM DATE_DIM 
+WHERE month_key between (select unique month_key-6 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')) and (select unique month_key-1 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr'))                                   
+)A
+LEFT OUTER JOIN
+(SELECT /*+PARALLEL(P,10)*/ V387_CHARGINGTIME_KEY, SUM(V35_RATE_USAGE)/60 CHARGED_MINUTES,SUM(V50_PAY_FREE_UNIT_DURATION)/60 FREE_MINUTES
+FROM L2_VOICE P
+WHERE V387_CHARGINGTIME_KEY in (SELECT date_key FROM DATE_DIM  WHERE month_key between (select unique month_key-6 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')) and (select unique month_key-1 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')))                                               
+AND V378_SERVICEFLOW=1
+GROUP BY V387_CHARGINGTIME_KEY
+)B ON A.DATE_KEY=B.V387_CHARGINGTIME_KEY
+LEFT OUTER JOIn
+(SELECT /*+PARALLEL(Q,10)*/ V387_CHARGINGTIME_KEY, SUM(V50_PAY_FREE_UNIT_DURATION)/60 PAID_MINUTES
+FROM L2_VOICE Q
+WHERE V387_CHARGINGTIME_KEY in (SELECT date_key FROM DATE_DIM  WHERE month_key between (select unique month_key-6 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')) and (select unique month_key-1 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')))                                       
+AND V378_SERVICEFLOW=1
+AND V436_LASTEFFECTOFFERING IN ( SELECT OFFERING_ID FROM OFFER_DIM@DWH01TODWH05 WHERE OFFER_TYPE IN ('Voice','Combo'))
+GROUP BY V387_CHARGINGTIME_KEY
+)C ON A.DATE_KEY=C.V387_CHARGINGTIME_KEY
+LEFT OUTER JOIN
+(SELECT /*+PARALLEL(R,10)*/ G383_CHARGINGTIME_KEY, SUM(G384_TOTALFLUX)/1073741824 DATA_USAGE_GB
+FROM L2_DATA R
+WHERE G383_CHARGINGTIME_KEY in (SELECT DATE_KEY FROM DATE_DIM  WHERE month_key <= (select month_key-1 from date_dim where date_value=to_date(sysdate,'dd/mm/rrrr')))                                              
+GROUP BY G383_CHARGINGTIME_KEY
+)D ON A.DATE_KEY=D.G383_CHARGINGTIME_KEY
+)T
+WHERE S.DATE_KEY=T.DATE_KEY
+group by month_key;

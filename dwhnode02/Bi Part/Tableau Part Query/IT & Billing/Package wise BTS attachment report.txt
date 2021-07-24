@@ -1,0 +1,5 @@
+select product_name, site_id, cgi, count(distinct msisdn) from product_dim, zone_dim, last_activity_fct_ld p
+where P.LU_PRODUCT_KEY=product_id
+and P.LU_LOCATION_KEY=cgi
+and lu_date_key in (select date_key from date_dim where date_value >= to_date(sysdate-7,'dd/mm/rrrr'))
+group by product_name, site_id, cgi

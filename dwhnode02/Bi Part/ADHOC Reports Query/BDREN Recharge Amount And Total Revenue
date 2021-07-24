@@ -1,0 +1,153 @@
+create table SHAHIN_BDREN_SEP_TO_DEC_RECHARGE_AMOUNT
+as
+
+(
+SELECT /*+PARALLEL(P,15)*/ MONTH_KEY ,RE6_PRI_IDENTITY,RE489_MAINOFFERINGID,SUM(RE3_RECHARGE_AMT) RECHARGE_AMOUNT
+FROM DWH_USER.L3_RECHARGE P,DWH_USER.DATE_DIM Q
+WHERE (RE30_ENTRY_DATE_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+AND RE30_ENTRY_DATE_KEY=DATE_KEY                      
+GROUP BY MONTH_KEY ,RE6_PRI_IDENTITY,RE489_MAINOFFERINGID
+)
+
+
+
+create table SHAHIN_BDREN_SEP_TO_DEC_VOICE_REVENUE
+as
+
+(
+SELECT /*+PARALLEL(P,15)*/ MONTH_KEY ,V372_CALLINGPARTYNUMBER,V397_MAINOFFERINGID,SUM(V41_DEBIT_AMOUNT) VOICE_PPU_REVENUE
+FROM DWH_USER.L3_VOICE P,DWH_USER.DATE_DIM Q
+WHERE (V387_CHARGINGTIME_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+AND V378_SERVICEFLOW=1
+AND V387_CHARGINGTIME_KEY=DATE_KEY                      
+GROUP BY MONTH_KEY ,V372_CALLINGPARTYNUMBER,V397_MAINOFFERINGID
+)
+
+
+create table SHAHIN_BDREN_SEP_TO_DEC_SMS_REVENUE
+as
+
+(
+SELECT /*+PARALLEL(P,15)*/ MONTH_KEY ,S22_PRI_IDENTITY,S395_MAINOFFERINGID,SUM(S41_DEBIT_AMOUNT) SMS_PPU_REVENUE
+FROM DWH_USER.L3_SMS P,DWH_USER.DATE_DIM Q
+WHERE (S387_CHARGINGTIME_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+AND S378_SERVICEFLOW=1
+AND S387_CHARGINGTIME_KEY=DATE_KEY                      
+GROUP BY MONTH_KEY ,S22_PRI_IDENTITY,S395_MAINOFFERINGID
+)
+
+
+create table SHAHIN_BDREN_SEP_TO_DEC_DATA_REVENUE
+as
+
+(
+SELECT /*+PARALLEL(P,15)*/ MONTH_KEY ,G372_CALLINGPARTYNUMBER,G401_MAINOFFERINGID,SUM(G41_DEBIT_AMOUNT) DATA_PPU_REVENUE
+FROM DWH_USER.L3_DATA P,DWH_USER.DATE_DIM Q
+WHERE (G383_CHARGINGTIME_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+
+AND G383_CHARGINGTIME_KEY=DATE_KEY                      
+GROUP BY MONTH_KEY ,G372_CALLINGPARTYNUMBER,G401_MAINOFFERINGID
+)
+
+
+create table SHAHIN_BDREN_SEP_TO_DEC_RECURRING_REVENUE
+as
+
+(
+SELECT /*+PARALLEL(P,15)*/ MONTH_KEY ,R375_CHARGINGPARTYNUMBER,R373_MAINOFFERINGID,SUM(R41_DEBIT_AMOUNT) RECURRING_PPU_REVENUE
+FROM DWH_USER.L3_RECURRING P,DWH_USER.DATE_DIM Q
+WHERE (R377_CYCLEBEGINTIME_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+
+AND R377_CYCLEBEGINTIME_KEY=DATE_KEY                      
+GROUP BY MONTH_KEY ,R375_CHARGINGPARTYNUMBER,R373_MAINOFFERINGID
+)
+
+
+
+
+
+
+----------------------------------FINAL QUERY-----------------------------------------------
+
+SELECT MONTH_LONG,MSISDN,PRODUCT_NAME,NVL(RECHARGE_AMOUNT,0) RECHARGE_AMOUNT, NVL(TOTAL_REVENUE,0) TOTAL_REVENUE
+FROM (SELECT UNIQUE MONTH_LONG, MONTH_KEY FROM DWH_USER.DATE_DIM) A,PRODUCT_DIM B,
+(SELECT * FROM 
+(SELECT MONTH_KEY, RE6_PRI_IDENTITY MSISDN, RE489_MAINOFFERINGID,SUM(RECHARGE_AMOUNT)RECHARGE_AMOUNT, SUM(TOTAL_REVENUE) TOTAL_REVENUE
+FROM
+(SELECT /*+PARALLEL(P,15)*/MONTH_KEY, RE6_PRI_IDENTITY, RE489_MAINOFFERINGID, RECHARGE_AMOUNT , NULL AS TOTAL_REVENUE
+FROM SHAHIN_BDREN_SEP_TO_DEC_RECHARGE_AMOUNT P
+UNION ALL
+SELECT /*+PARALLEL(P,15)*/MONTH_KEY ,V372_CALLINGPARTYNUMBER,V397_MAINOFFERINGID, NULL AS RECHARGE_AMOUNT , VOICE_PPU_REVENUE
+FROM SHAHIN_BDREN_SEP_TO_DEC_VOICE_REVENUE P
+UNION ALL
+SELECT /*+PARALLEL(P,15)*/MONTH_KEY ,S22_PRI_IDENTITY,S395_MAINOFFERINGID, NULL AS RECHARGE_AMOUNT , SMS_PPU_REVENUE
+FROM SHAHIN_BDREN_SEP_TO_DEC_SMS_REVENUE P
+UNION ALL
+SELECT /*+PARALLEL(P,15)*/MONTH_KEY ,G372_CALLINGPARTYNUMBER,G401_MAINOFFERINGID, NULL AS RECHARGE_AMOUNT , DATA_PPU_REVENUE
+FROM SHAHIN_BDREN_SEP_TO_DEC_DATA_REVENUE P
+UNION ALL
+SELECT /*+PARALLEL(P,15)*/MONTH_KEY ,R375_CHARGINGPARTYNUMBER,R373_MAINOFFERINGID, NULL AS RECHARGE_AMOUNT , RECURRING_PPU_REVENUE
+FROM SHAHIN_BDREN_SEP_TO_DEC_RECURRING_REVENUE P
+)
+GROUP BY MONTH_KEY, RE6_PRI_IDENTITY, RE489_MAINOFFERINGID
+)
+WHERE MSISDN IN 
+(SELECT IP7_MSISDN FROM DWH_USER.IPDR_ESMS_INTERMEDIATE_TABLE
+WHERE (DATE_KEY BETWEEN (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                             '01/09/2020',
+                                                                             'DD/MM/RRRR')))
+                            AND (SELECT DATE_KEY FROM DATE_DIM WHERE DATE_VALUE =
+                                                                       TRUNC (
+                                                                          TO_DATE (
+                                                                            '31/12/2020',
+                                                                             'DD/MM/RRRR'))))
+)
+)C
+WHERE A.MONTH_KEY=C.MONTH_KEY AND PRODUCT_ID=RE489_MAINOFFERINGID 
